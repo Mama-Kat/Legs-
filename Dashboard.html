@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legs+ Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;--surface3:#282828;--border:#333;--text:#e8e8e8;--text-dim:#888;--accent:#00d4ff;--accent-dim:#00a8cc;--green:#00e676;--red:#ff5252;--orange:#ffab40;--sidebar-w:260px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh}
+#app{height:100vh;display:flex}
+#sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:10}
+.sidebar-header{padding:24px 20px 16px;border-bottom:1px solid var(--border)}
+.sidebar-header h2{font-size:22px;color:var(--accent);letter-spacing:-.5px}
+.sidebar-header span{font-size:11px;color:var(--text-dim);display:block;margin-top:2px}
+.sidebar-nav{flex:1;padding:12px 8px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;transition:background .15s;color:var(--text-dim);font-size:14px;font-weight:500;margin-bottom:1px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--surface3);color:var(--accent)}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim)}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.status-dot.connected{background:var(--green)}
+.status-dot.disconnected{background:var(--red)}
+#content{margin-left:var(--sidebar-w);height:100vh;overflow-y:auto;padding:32px;width:calc(100% - var(--sidebar-w))}
+.page-title{font-size:24px;font-weight:700;margin-bottom:24px;letter-spacing:-.3px}
+.stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);padding:20px 24px;transition:border .15s}
+.stat-card:hover{border-color:var(--accent)}
+.stat-card .stat-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.stat-card .stat-icon svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2}
+.stat-card .stat-icon.blue{color:var(--accent)}
+.stat-card .stat-icon.green{color:var(--green)}
+.stat-card .stat-num{font-size:32px;font-weight:700;line-height:1}
+.stat-card .stat-label{font-size:13px;color:var(--text-dim);margin-top:4px}
+.card{background:var(--surface);border:1px solid var(--border);padding:24px;margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-header h3{font-size:16px;font-weight:600}
+.search-bar{width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;margin-bottom:16px;transition:border .15s}
+.search-bar:focus{border-color:var(--accent)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:10px 14px;font-size:13px;border-bottom:1px solid rgba(51,51,51,.4)}
+tr{cursor:pointer;transition:background .1s}
+tr:hover{background:var(--surface2)}
+.badge{display:inline-block;padding:2px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.badge.owner{background:rgba(255,82,82,.12);color:var(--red)}
+.badge.moderator{background:rgba(255,171,64,.12);color:var(--orange)}
+.badge.user{background:rgba(136,136,136,.1);color:var(--text-dim)}
+.badge.online-badge{background:rgba(0,230,118,.12);color:var(--green)}
+.badge.offline-badge{background:rgba(136,136,136,.08);color:var(--text-dim)}
+.badge.joinable-badge{background:rgba(33,150,243,.12);color:var(--accent)}
+.btn{padding:9px 18px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--accent);color:#000}.btn-primary:hover{background:var(--accent-dim)}
+.btn-success{background:var(--green);color:#000}.btn-success:hover{opacity:.85}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{opacity:.85}
+.btn-warning{background:var(--orange);color:#000}.btn-warning:hover{opacity:.85}
+.btn-secondary{background:var(--surface3);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--accent)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.form-input{width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;transition:border .15s}
+.form-input:focus{border-color:var(--accent)}
+textarea.form-input{resize:vertical;min-height:72px;font-family:inherit}
+select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px}
+.checkbox-row input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px}
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 18px;font-size:13px;font-weight:500;animation:slideIn .25s ease;max-width:340px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.toast.success{background:#0d3320;color:var(--green);border:1px solid rgba(0,230,118,.25)}
+.toast.error{background:#3d1414;color:var(--red);border:1px solid rgba(255,82,82,.25)}
+.toast.info{background:#0d2533;color:var(--accent);border:1px solid rgba(0,212,255,.25)}
+@keyframes slideIn{from{transform:translateX(80px);opacity:0}to{transform:translateX(0);opacity:1}}
+.detail-panel{position:fixed;top:0;right:-500px;width:460px;height:100vh;background:var(--surface);border-left:1px solid var(--border);z-index:100;overflow-y:auto;transition:right .25s ease;padding:24px}
+.detail-panel.open{right:0}
+.detail-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:99;display:none}
+.detail-overlay.open{display:block}
+.detail-close{position:absolute;top:16px;right:16px;background:var(--surface3);border:1px solid var(--border);color:var(--text);width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.detail-close:hover{border-color:var(--red);color:var(--red)}
+.detail-header{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.detail-header h2{font-size:20px;margin-bottom:4px}
+.detail-header .detail-id{color:var(--text-dim);font-size:13px;font-family:monospace}
+.detail-section{margin-bottom:18px}
+.detail-section h4{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.detail-field{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(51,51,51,.3)}
+.detail-field .field-label{font-size:12px;color:var(--text-dim)}
+.detail-field .field-value{font-size:13px;font-weight:500}
+.empty-state{text-align:center;padding:40px 0;color:var(--text-dim);font-size:14px}
+.alert-sent-log{max-height:280px;overflow-y:auto}
+.alert-log-item{padding:8px 10px;background:var(--surface2);margin-bottom:6px;font-size:12px;border-left:3px solid var(--accent)}
+.alert-log-item .al-time{color:var(--text-dim);font-size:11px}
+.alert-log-item .al-target{color:var(--accent);font-weight:600}
+.crypto-box{background:var(--surface2);border:1px solid var(--border);padding:16px;margin-bottom:12px}
+.crypto-box textarea{width:100%;min-height:100px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:monospace;font-size:13px;padding:12px;resize:vertical;outline:none}
+.crypto-box textarea:focus{border-color:var(--accent)}
+.crypto-actions{display:flex;gap:8px;margin-top:10px}
+.crypto-arrow{text-align:center;padding:12px 0;color:var(--accent)}
+.crypto-arrow svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2}
+.key-input{display:flex;gap:8px;margin-bottom:16px;align-items:center}
+.key-input input{flex:1}
+.key-input label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="app">
+<nav id="sidebar">
+<div class="sidebar-header">
+<h2>Legs+</h2>
+<span>Owner Dashboard</span>
+</div>
+<div class="sidebar-nav">
+<div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+Dashboard
+</div>
+<div class="nav-item" onclick="showPage('players')" data-page="players">
+<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+Players
+</div>
+<div class="nav-item" onclick="showPage('alerts')" data-page="alerts">
+<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+Alerts
+</div>
+<div class="nav-item" onclick="showPage('servers')" data-page="servers">
+<svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+Servers
+</div>
+<div class="nav-item" onclick="showPage('crypto')" data-page="crypto">
+<svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="0" ry="0"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+Encryption
+</div>
+<div class="nav-item" onclick="showPage('activity')" data-page="activity">
+<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+Activity
+</div>
+<div class="nav-item" onclick="showPage('friends')" data-page="friends">
+<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+Friends
+</div>
+<div class="nav-item" onclick="showPage('dms')" data-page="dms">
+<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+DMs
+</div>
+</div>
+ <div class="sidebar-footer">
+ <div class="status-dot" id="connDot"></div>
+ <span id="connText">Connecting...</span>
+ </div>
+ <div style="padding:12px 20px;border-top:1px solid var(--border)">
+ <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Your Legs+ ID (for mod actions)</label>
+ <input class="form-input" id="operatorId" placeholder="L+XXXXXXXX" style="margin-bottom:8px" oninput="onOperatorIdChange()">
+ <div style="font-size:12px;color:var(--text-dim)">Role: <span id="operatorRole" style="color:var(--accent)">--</span></div>
+ </div>
+</nav>
+<div id="content"></div>
+</div>
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detailPanel">
+<button class="detail-close" onclick="closeDetail()">&times;</button>
+<div id="detailContent"></div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const FB_CFG={databaseURL:"https://legsplus-default-rtdb.firebaseio.com"};
+let db,allUsers={},allOnline={},allFriends={},allFriendRequests={},allDMs={},currentPage='dashboard',selectedPlayer=null,alertLog=[];
+
+firebase.initializeApp(FB_CFG);
+db=firebase.database();
+setupListeners();
+showPage('dashboard');
+
+function setupListeners(){
+db.ref('users').on('value',snap=>{allUsers=snap.val()||{};if(currentPage==='players')renderPlayersPage();if(currentPage==='dashboard')renderDashboardPage()});
+db.ref('online').on('value',snap=>{allOnline=snap.val()||{};if(currentPage==='players')renderPlayersPage();if(currentPage==='dashboard')renderDashboardPage()});
+db.ref('config/avatars').on('value',snap=>{window._avatarList=(snap.val()||{}).list||[];populateAvatarDropdown()});
+db.ref('.info/connected').on('value',snap=>{const c=snap.val()===true;document.getElementById('connDot').className='status-dot '+(c?'connected':'disconnected');document.getElementById('connText').textContent=c?'Connected':'Disconnected'});
+db.ref('friends').on('value',snap=>{allFriends=snap.val()||{};if(currentPage==='friends')renderFriendsPage();if(currentPage==='dms')renderDMsPage()});
+db.ref('friendRequests').on('value',snap=>{allFriendRequests=snap.val()||{};if(currentPage==='friends')renderFriendsPage()});
+db.ref('dms').on('value',snap=>{allDMs=snap.val()||{};if(currentPage==='dms')renderDMsPage()});
+}
+
+function isMod(role){return role==='moderator'||role==='owner';}
+
+function onOperatorIdChange(){
+ const id=(document.getElementById('operatorId').value||'').trim();
+ window._operatorId=id;
+ try{localStorage.setItem('lp_operatorId',id)}catch(e){}
+ const roleEl=document.getElementById('operatorRole');
+ if(!id){window._myRole='';roleEl.textContent='--';return;}
+ db.ref('users/'+id+'/role').once('value',snap=>{
+  const r=snap.val()||'user';
+  window._myRole=r;
+  roleEl.textContent=r.toUpperCase();
+ });
+}
+
+(function initOperator(){
+ const saved=localStorage.getItem('lp_operatorId');
+ if(saved){document.getElementById('operatorId').value=saved;onOperatorIdChange();}
+})();
+
+function showPage(page){
+currentPage=page;
+document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
+const c=document.getElementById('content');
+ ({dashboard:renderDashboardPage,players:renderPlayersPage,alerts:renderAlertsPage,servers:renderServersPage,crypto:renderCryptoPage,activity:renderActivityPage,friends:renderFriendsPage,dms:renderDMsPage})[page]();
+}
+
+function isPlayerOnline(o){
+ if(!o||!o.isOnline)return false;
+ if(o.accountStatus==='offline')return false;
+ const hb=o.lastHeartbeat||o.lastOnline||0;
+ return (Date.now()/1000 - hb) < 60;
+}
+
+function renderDashboardPage(){
+ const userIds=Object.keys(allUsers).filter(k=>k.startsWith('L+'));
+ const onlineIds=Object.keys(allOnline).filter(k=>isPlayerOnline(allOnline[k]));
+ const c=document.getElementById('content');
+ const iconUsers='<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+ const iconOnline='<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+ c.innerHTML=`
+ <h1 class="page-title">Dashboard</h1>
+ <div class="stats-row">
+ <div class="stat-card"><div class="stat-icon blue">${iconUsers}</div><div class="stat-num">${userIds.length}</div><div class="stat-label">Total Players</div></div>
+ <div class="stat-card"><div class="stat-icon green">${iconOnline}</div><div class="stat-num">${onlineIds.length}</div><div class="stat-label">Online Now</div></div>
+ </div>
+ <div class="card">
+ <div class="card-header"><h3>Online Players</h3></div>
+ ${onlineIds.length===0?'<div class="empty-state">No players currently online</div>':
+ '<table><thead><tr><th>Status</th><th>Username</th><th>Legs+ ID</th><th>Code</th><th>Last Seen</th></tr></thead><tbody>'+
+ onlineIds.map(k=>{
+ const u=allUsers[k]||{};const o=allOnline[k]||{};
+ const acctStatus=o.accountStatus||'';
+ let statusText=acctStatus==='dnd'?'DND':acctStatus==='joinable'?'Joinable':'Online';
+ let statusClass=acctStatus==='dnd'?'offline-badge':acctStatus==='joinable'?'joinable-badge':'online-badge';
+ return `<tr onclick="openDetail('${k}')">
+ <td><span class="badge ${statusClass}">${statusText}</span></td>
+ <td>${esc(u.username||o.username||'Unknown')}</td>
+ <td style="font-family:monospace;font-size:12px">${esc(k)}</td>
+ <td>${esc(o.currentCode||'--')}</td>
+ <td>${fmtTs(o.lastOnline)}</td></tr>`;
+ }).join('')+'</tbody></table>'}
+ </div>
+ <div class="card">
+ <div class="card-header"><h3>All Registered Players</h3></div>
+ ${userIds.length===0?'<div class="empty-state">No registered players yet</div>':
+ '<table><thead><tr><th>Status</th><th>Username</th><th>Legs+ ID</th><th>Role</th><th>Avatar</th><th>Last Online</th></tr></thead><tbody>'+
+ userIds.map(k=>{
+ const u=allUsers[k]||{};
+ const o=allOnline[k]||{};
+ const isOn=isPlayerOnline(o);
+ const acctStatus=o.accountStatus||'';
+ let statusText=isOn?(acctStatus==='dnd'?'DND':acctStatus==='offline'?'Appearing Offline':acctStatus==='joinable'?'Joinable':'Online'):'Offline';
+ let statusClass=isOn?(acctStatus==='dnd'?'offline-badge':acctStatus==='offline'?'offline-badge':acctStatus==='joinable'?'joinable-badge':'online-badge'):'offline-badge';
+ return `<tr onclick="openDetail('${k}')">
+ <td><span class="badge ${statusClass}">${statusText}</span></td>
+ <td>${esc(u.username||'Unknown')}</td>
+ <td style="font-family:monospace;font-size:12px">${esc(k)}</td>
+ <td><span class="badge ${u.role||'user'}">${esc((u.role||'user').toUpperCase())}</span></td>
+ <td style="font-size:12px">${esc(u.avatarName||'--')}</td>
+ <td>${fmtTs(u.lastOnline)}</td></tr>`;
+ }).join('')+'</tbody></table>'}
+ </div>`;
+}
+
+function renderPlayersPage(){
+  const userIds=Object.keys(allUsers).filter(k=>k.startsWith('L+'));
+  const onlineCount=userIds.filter(k=>{
+   const o=allOnline[k];
+   return isPlayerOnline(o);
+  }).length;
+  const c=document.getElementById('content');
+  c.innerHTML=`
+  <h1 class="page-title">Players</h1>
+  <div class="card">
+  <div class="card-header"><h3>Registered Players</h3><span style="color:var(--green);font-size:13px">${onlineCount} online</span></div>
+  <input class="search-bar" id="playerSearch" placeholder="Search by name, ID, or Unity ID..." oninput="filterPlayers()">
+  <table>
+  <thead><tr><th>Status</th><th>Username</th><th>Legs+ ID</th><th>Unity ID</th><th>Role</th><th>Code</th><th>Last Seen</th></tr></thead>
+  <tbody id="playersTableBody">
+  ${userIds.map(k=>{
+  const u=allUsers[k]||{};
+  const o=allOnline[k]||{};
+  const isOn=isPlayerOnline(o);
+  const acctStatus=o.accountStatus||'';
+  let statusText=isOn?(acctStatus==='dnd'?'DND':acctStatus==='offline'?'Appearing Offline':acctStatus==='joinable'?'Joinable':'Online'):'Offline';
+   let statusClass=isOn?(acctStatus==='dnd'?'offline-badge':acctStatus==='offline'?'offline-badge':acctStatus==='joinable'?'joinable-badge':'online-badge'):'offline-badge';
+   return `<tr data-uid="${k}" onclick="openDetail('${k}')">
+  <td><span class="badge ${statusClass}">${statusText}</span></td>
+  <td>${esc(u.username||'Unknown')}</td>
+  <td style="font-family:monospace;font-size:12px">${esc(k)}</td>
+  <td style="font-size:11px;color:var(--text-dim)">${esc(u.unityId||'--')}</td>
+  <td><span class="badge ${u.role||'user'}">${esc((u.role||'user').toUpperCase())}</span></td>
+  <td>${esc(u.currentCode||o.currentCode||'--')}</td>
+  <td>${fmtTs(u.lastOnline)}</td></tr>`;
+  }).join('')}
+  </tbody>
+  </table>
+  ${userIds.length===0?'<div class="empty-state">No registered players</div>':''}
+  </div>`;
+}
+
+function filterPlayers(){
+const q=(document.getElementById('playerSearch').value||'').toLowerCase();
+document.querySelectorAll('#playersTableBody tr').forEach(r=>{
+const text=r.textContent.toLowerCase();const uid=r.dataset.uid||'';
+r.style.display=text.includes(q)||uid.toLowerCase().includes(q)?'':'none';
+});
+}
+
+function openDetail(legsId){
+selectedPlayer=legsId;
+const u=allUsers[legsId]||{};
+const o=allOnline[legsId]||{};
+  const now=Date.now()/1000;
+  const isOn=isPlayerOnline(o);
+  const acctStatus=o.accountStatus||'';
+  let statusText=isOn?(acctStatus==='dnd'?'DND':acctStatus==='offline'?'Appearing Offline':acctStatus==='joinable'?'Joinable':'Online'):'Offline';
+   let statusClass=isOn?(acctStatus==='dnd'?'offline-badge':acctStatus==='offline'?'offline-badge':acctStatus==='joinable'?'joinable-badge':'online-badge'):'offline-badge';
+ const p=document.getElementById('detailContent');
+p.innerHTML=`
+<div class="detail-header">
+<h2>${esc(u.username||'Unknown')}</h2>
+<div class="detail-id">${esc(legsId)}</div>
+<div style="margin-top:8px"><span class="badge ${statusClass}">${statusText}</span>
+<span class="badge ${u.role||'user'}" style="margin-left:6px">${esc((u.role||'user').toUpperCase())}</span></div>
+</div>
+<div class="detail-section">
+<h4>Profile Info</h4>
+<div class="detail-field"><span class="field-label">Username</span><span class="field-value">${esc(u.username||'--')}</span></div>
+<div class="detail-field"><span class="field-label">Bio</span><span class="field-value" style="max-width:260px;text-align:right">${esc(u.bio||'--')}</span></div>
+<div class="detail-field"><span class="field-label">Unity ID</span><span class="field-value" style="font-family:monospace;font-size:11px">${esc(u.unityId||'--')}</span></div>
+<div class="detail-field"><span class="field-label">Avatar</span><span class="field-value">${esc(u.avatarName||'--')}</span></div>
+<div class="detail-field"><span class="field-label">Current Code</span><span class="field-value">${esc(u.currentCode||o.currentCode||'--')}</span></div>
+<div class="detail-field"><span class="field-label">Account Status</span><span class="field-value">${esc(acctStatus||'none')}</span></div>
+<div class="detail-field"><span class="field-label">Last Online</span><span class="field-value">${fmtTsFull(u.lastOnline)}</span></div>
+<div class="detail-field"><span class="field-label">Created</span><span class="field-value">${fmtTsFull(u.createdAt)}</span></div>
+</div>
+<div class="detail-section">
+<h4>Edit Profile</h4>
+<div class="form-group"><label>Username</label>
+<div style="display:flex;gap:8px"><input class="form-input" id="editUsername" value="${esc(u.username||'')}"><button class="btn btn-primary" onclick="saveUsername('${legsId}')">Save</button></div></div>
+<div class="form-group"><label>Bio</label>
+<textarea class="form-input" id="editBio">${esc(u.bio||'')}</textarea>
+<button class="btn btn-primary" onclick="saveBio('${legsId}')" style="margin-top:8px">Save Bio</button></div>
+</div>
+<div class="detail-section">
+ <h4>Broadcast Message</h4>
+ <div class="form-group"><label>Message to all players</label>
+ <div style="display:flex;gap:8px"><input class="form-input" id="broadcastMsg" placeholder="Type broadcast message..."><button class="btn btn-danger" onclick="sendBroadcast()">Broadcast</button></div></div>
+ </div>
+ <div class="detail-section">
+ <h4>Whisper to Player in Room</h4>
+ <div class="form-group"><label>Players in this user's room</label>
+ <select class="form-input" id="whisperTarget">${renderRoomPlayerOptions(legsId)}</select></div>
+ <div class="form-group"><label>Message</label>
+ <div style="display:flex;gap:8px"><input class="form-input" id="whisperMsg" placeholder="Type message to player..."><button class="btn btn-warning" onclick="sendWhisper('${legsId}')">Whisper</button></div></div>
+ </div>
+ </div>
+<div class="detail-section">
+<h4>Owner Actions</h4>
+<div class="form-group"><label>Set Role</label>
+<div style="display:flex;gap:8px">
+<select class="form-input" id="editRole" style="width:auto;flex:1"><option value="user" ${u.role==='user'||!u.role?'selected':''}>User</option><option value="moderator" ${u.role==='moderator'?'selected':''}>Moderator</option><option value="owner" ${u.role==='owner'?'selected':''}>Owner</option></select>
+<button class="btn btn-warning" onclick="saveRole('${legsId}')">Update Role</button></div></div>
+<div class="form-group"><label>Force Join Code</label>
+<div style="display:flex;gap:8px"><input class="form-input" id="forceCode" placeholder="Enter room code..."><button class="btn btn-danger" onclick="sendForceCode('${legsId}')">Force Join</button></div></div>
+<div class="form-group"><label>Change Avatar</label>
+<div style="display:flex;gap:8px"><select class="form-input" id="changeAvatar" style="width:auto;flex:1"><option value="">Select avatar...</option></select><button class="btn btn-warning" onclick="sendSetAvatar('${legsId}')">Set Avatar</button></div></div>
+ <div class="form-group"><label>Freeze / Unfreeze</label>
+ <div style="display:flex;gap:8px">
+ <button class="btn btn-danger" onclick="sendFreeze('${legsId}',true)">Freeze</button>
+ <button class="btn btn-success" onclick="sendFreeze('${legsId}',false)">Unfreeze</button>
+ </div></div>
+ ${isMod(window._myRole)?`<div class="form-group"><label>QuickEnergy (moderator)</label>
+ <div style="display:flex;gap:8px">
+ <button class="btn btn-success" onclick="sendQuickEnergy('${legsId}',true)">Enable</button>
+ <button class="btn btn-secondary" onclick="sendQuickEnergy('${legsId}',false)">Disable</button>
+ </div></div>`:''}
+ <div class="detail-section">
+ <h4>Danger Zone</h4>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn btn-danger" onclick="deleteAccount('${legsId}')">Delete Account</button>
+<span style="color:var(--text-dim);font-size:12px">Permanent action</span>
+</div>
+</div>
+<div class="detail-section">
+<h4>Send Alert</h4>
+<div class="form-group"><label>Message</label><textarea class="form-input" id="alertMsg" placeholder="Type alert message..."></textarea></div>
+<div class="checkbox-row"><input type="checkbox" id="alertBubble" checked><label for="alertBubble">Show in bubble</label></div>
+<div class="checkbox-row"><input type="checkbox" id="alertHideTag"><label for="alertHideTag">Hide [ALERT] tag</label></div>
+<div class="checkbox-row"><input type="checkbox" id="alertSilent"><label for="alertSilent">Silent (no chat message)</label></div>
+<button class="btn btn-primary" onclick="sendAlertToPlayer('${legsId}')">Send Alert</button>
+</div>`;
+document.getElementById('detailOverlay').classList.add('open');
+document.getElementById('detailPanel').classList.add('open');
+}
+
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('open');document.getElementById('detailPanel').classList.remove('open');selectedPlayer=null}
+
+function saveUsername(uid){const v=document.getElementById('editUsername').value.trim();if(!v)return toast('Username cannot be empty','error');db.ref('commands/'+uid).push({type:'setUsername',value:v,timestamp:firebase.database.ServerValue.TIMESTAMP});toast('Username update sent','success');logActivity('username_change','Changed username of '+uid+' to "'+v+'"')}
+function saveBio(uid){const v=document.getElementById('editBio').value.trim();db.ref('commands/'+uid).push({type:'setBio',value:v,timestamp:firebase.database.ServerValue.TIMESTAMP});toast('Bio update sent','success');logActivity('bio_change','Changed bio of '+uid)}
+function saveRole(uid){const v=document.getElementById('editRole').value;db.ref('commands/'+uid).push({type:'setRole',value:v,timestamp:firebase.database.ServerValue.TIMESTAMP});toast('Role update sent','success');logActivity('role_change','Set role of '+uid+' to "'+v+'"')}
+function sendBroadcast(){const v=document.getElementById('broadcastMsg').value.trim();if(!v)return toast('Enter a message','error');db.ref('commands').push({type:'broadcast',value:v,timestamp:firebase.database.ServerValue.TIMESTAMP});toast('Broadcast sent','success');logActivity('broadcast','Sent broadcast: "'+v.substring(0,50)+'"');document.getElementById('broadcastMsg').value=''}
+function renderRoomPlayerOptions(uid){
+ const o=allOnline[uid]||{};
+ const code=o.currentCode||'';
+ const players=(o.roomPlayers&&Array.isArray(o.roomPlayers))?o.roomPlayers:[];
+ if(players.length>0){
+ return players.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');
+ }
+ if(code){
+ const others=Object.keys(allOnline).filter(k=>k!==uid&&allOnline[k].currentCode===code);
+ if(others.length>0){
+ return others.map(k=>{
+ const u=allUsers[k]||{};
+ return '<option value="'+k+'">'+esc(u.username||k)+'</option>';
+ }).join('');
+ }
+ }
+ return '<option value="">No players detected in room</option>';
+}
+function sendWhisper(uid){const t=document.getElementById('whisperTarget').value;const m=document.getElementById('whisperMsg').value.trim();if(!t||!m)return toast('Select player and enter message','error');db.ref('commands/'+uid).push({type:'whisper',value:t+'|'+m,timestamp:firebase.database.ServerValue.TIMESTAMP,silent:true});toast('Whisper sent to '+t,'success');logActivity('whisper','Whisper to '+t+' via '+uid);document.getElementById('whisperMsg').value=''}
+function sendFreeze(uid,state){db.ref('commands/'+uid).push({type:'freeze',value:state?'true':'false',timestamp:firebase.database.ServerValue.TIMESTAMP,silent:true});toast(state?'Freeze sent':'Unfreeze sent','success');logActivity(state?'freeze':'unfreeze',state?'Froze '+uid:'Unfroze '+uid)}
+function sendQuickEnergy(uid,state){if(!isMod(window._myRole))return toast('Moderator only','error');db.ref('commands/'+uid).push({type:'quickEnergy',value:state?'true':'false',timestamp:firebase.database.ServerValue.TIMESTAMP,silent:true});toast(state?'QuickEnergy enabled':'QuickEnergy disabled','success');logActivity('quickEnergy',(state?'Enabled':'Disabled')+' QuickEnergy for '+uid)}
+function sendForceCode(uid){const v=document.getElementById('forceCode').value.trim();if(!v)return toast('Enter a code','error');db.ref('commands/'+uid).push({type:'joinCode',value:v,timestamp:firebase.database.ServerValue.TIMESTAMP,silent:true});toast('Force join sent: '+v,'success');logActivity('force_join','Sent force join "'+v+'" to '+uid)}
+function sendSetAvatar(uid){const v=document.getElementById('changeAvatar').value;if(!v)return toast('Select an avatar','error');db.ref('commands/'+uid).push({type:'setAvatar',value:v,timestamp:firebase.database.ServerValue.TIMESTAMP,silent:true});toast('Avatar change sent','success');logActivity('avatar_change','Set avatar of '+uid+' to "'+v+'"')}
+function populateAvatarDropdown(){const sel=document.getElementById('changeAvatar');if(!sel)return;const list=(window._avatarList&&window._avatarList.length>0)?window._avatarList:['Cat','Fox','Bunny','Dino','Alien','Robot','Dog','Bear','Panda','Frog','Pig','Chicken','Sheep','Cow','Horse','Mouse','Owl','Penguin','Turtle','Dragon'];const cur=sel.value;sel.innerHTML='<option value="">Select avatar...</option>';list.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===cur)o.selected=true;sel.appendChild(o)})}
+function sendAlertToPlayer(uid){const msg=document.getElementById('alertMsg').value.trim();if(!msg)return toast('Enter a message','error');const sb=document.getElementById('alertBubble').checked;const ht=document.getElementById('alertHideTag').checked;const sl=document.getElementById('alertSilent').checked;db.ref('alerts/'+uid).push({message:msg,type:'alert',showBubble:sb,hideTag:ht,from:'dashboard',timestamp:firebase.database.ServerValue.TIMESTAMP,silent:sl});toast('Alert sent','success');alertLog.unshift({target:uid,msg:msg,time:Date.now()});logActivity('alert_sent','Sent alert to '+uid+': "'+msg.substring(0,50)+'"');document.getElementById('alertMsg').value=''}
+function deleteAccount(uid){if(!confirm('Permanently delete this account? This cannot be undone.'))return;db.ref('users/'+uid).remove();db.ref('online/'+uid).remove();db.ref('alerts/'+uid).remove();db.ref('commands/'+uid).remove();toast('Account deleted','success');logActivity('delete_account','Deleted account '+uid);closeDetail();renderPlayersPage();}
+
+function renderAlertsPage(){
+const userIds=Object.keys(allUsers).filter(k=>k.startsWith('L+'));
+const c=document.getElementById('content');
+c.innerHTML=`
+<h1 class="page-title">Alerts</h1>
+<div class="card">
+<div class="card-header"><h3>Send Alert</h3></div>
+<div class="form-group"><label>Target</label>
+<select class="form-input" id="alertTarget" onchange="onAlertTargetChange()">
+<option value="all">All Players</option>
+<option value="player">Specific Player</option>
+<option value="code">Players in Code</option>
+</select></div>
+<div class="form-group" id="alertPlayerGroup" style="display:none"><label>Select Player</label>
+<select class="form-input" id="alertPlayerSelect">
+${userIds.map(k=>`<option value="${k}">${esc((allUsers[k]||{}).username||k)} (${k})</option>`).join('')}
+</select></div>
+<div class="form-group" id="alertCodeGroup" style="display:none"><label>Room Code</label>
+<input class="form-input" id="alertCodeInput" placeholder="Enter code..."></div>
+<div class="form-group"><label>Message</label>
+<textarea class="form-input" id="alertMessage" placeholder="Type your alert message..." rows="4"></textarea></div>
+<div class="checkbox-row"><input type="checkbox" id="alertShowBubble" checked><label for="alertShowBubble">Show in player's bubble</label></div>
+<div class="checkbox-row"><input type="checkbox" id="alertHideTag"><label for="alertHideTag">Hide [ALERT] tag</label></div>
+<div class="checkbox-row"><input type="checkbox" id="alertSilent"><label for="alertSilent">Silent (no chat message)</label></div>
+<button class="btn btn-danger" onclick="sendBulkAlert()" style="margin-top:8px">Send Alert</button>
+</div>
+<div class="card">
+<div class="card-header"><h3>Alert History</h3></div>
+<div class="alert-sent-log" id="alertSentLog">
+${alertLog.length===0?'<div class="empty-state">No alerts sent yet</div>':
+alertLog.map(a=>`<div class="alert-log-item"><div class="al-time">${new Date(a.time).toLocaleString()}</div><div class="al-target">To: ${esc(a.target)}</div><div>${esc(a.msg)}</div></div>`).join('')}
+</div>
+</div>`;
+}
+
+function onAlertTargetChange(){const v=document.getElementById('alertTarget').value;document.getElementById('alertPlayerGroup').style.display=v==='player'?'':'none';document.getElementById('alertCodeGroup').style.display=v==='code'?'':'none'}
+
+function sendBulkAlert(){
+ const target=document.getElementById('alertTarget').value;
+ const msg=document.getElementById('alertMessage').value.trim();
+ if(!msg)return toast('Enter a message','error');
+ const sb=document.getElementById('alertShowBubble').checked;
+ const ht=document.getElementById('alertHideTag').checked;
+ const sl=document.getElementById('alertSilent').checked;
+ const ad={message:msg,type:'alert',showBubble:sb,hideTag:ht,from:'dashboard',timestamp:firebase.database.ServerValue.TIMESTAMP,silent:sl};
+ let count=0;
+ if(target==='all'){
+ const uids=Object.keys(allUsers).filter(k=>k.startsWith('L+'));
+ uids.forEach(uid=>{db.ref('alerts/'+uid).push(ad);count++});
+ toast('Alert sent to '+count+' players','success');
+ alertLog.unshift({target:'ALL ('+count+')',msg:msg,time:Date.now()});
+ logActivity('alert_all','Sent alert to ALL ('+count+'): "'+msg.substring(0,50)+'"');
+ }else if(target==='player'){
+ const pid=document.getElementById('alertPlayerSelect').value;
+ if(!pid)return toast('Select a player','error');
+ db.ref('alerts/'+pid).push(ad);
+ toast('Alert sent','success');
+ alertLog.unshift({target:pid,msg:msg,time:Date.now()});
+ logActivity('alert_player','Sent alert to '+pid+': "'+msg.substring(0,50)+'"');
+ }else if(target==='code'){
+ const code=(document.getElementById('alertCodeInput').value||'').trim().toUpperCase();
+ if(!code)return toast('Enter a code','error');
+ const uids=Object.keys(allUsers).filter(k=>k.startsWith('L+'));
+ uids.forEach(uid=>{const u=allUsers[uid]||{};const o=allOnline[uid]||{};if(u.currentCode===code||o.currentCode===code){db.ref('alerts/'+uid).push(ad);count++}});
+ toast('Alert sent to '+count+' in code '+code,'success');
+ alertLog.unshift({target:'CODE:'+code+' ('+count+')',msg:msg,time:Date.now()});
+ logActivity('alert_code','Sent alert to code '+code+' ('+count+'): "'+msg.substring(0,50)+'"');
+ }
+ document.getElementById('alertMessage').value='';
+ if(currentPage==='alerts')renderAlertsPage();
+}
+
+function renderCryptoPage(){
+const c=document.getElementById('content');
+c.innerHTML=`
+<h1 class="page-title">Encryption / Decryption</h1>
+<div class="card">
+<div class="card-header"><h3>XOR + Base64 Tool</h3></div>
+<p style="color:var(--text-dim);font-size:13px;margin-bottom:16px">Encrypt or decrypt text using the same XOR + Base64 algorithm that LPUser.dat uses. Uses the encryption key from OnlineSystem.</p>
+<div class="form-group"><label>Encryption Key</label><input class="form-input" id="cryptoKey" value="L3gsPluS2024#SecK3y!@Xz" style="font-family:monospace;font-size:13px"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div>
+<div class="form-group"><label>Plain Text</label></div>
+<textarea class="form-input" id="cryptoPlain" placeholder="Enter plain text to encrypt..." style="min-height:200px;font-family:monospace;font-size:13px"></textarea>
+<div class="crypto-actions"><button class="btn btn-primary" onclick="doEncrypt()">Encrypt</button></div>
+</div>
+<div>
+<div class="form-group"><label>Encrypted (Base64)</label></div>
+<textarea class="form-input" id="cryptoEnc" placeholder="Enter Base64 to decrypt..." style="min-height:200px;font-family:monospace;font-size:13px"></textarea>
+<div class="crypto-actions"><button class="btn btn-primary" onclick="doDecrypt()">Decrypt</button></div>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="card-header"><h3>Batch Decrypt LPUser.dat</h3></div>
+<p style="color:var(--text-dim);font-size:13px;margin-bottom:16px">Paste the contents of an LPUser.dat file to decrypt it and view the stored data.</p>
+<textarea class="form-input" id="batchInput" placeholder="Paste encrypted LPUser.dat contents here..." style="min-height:120px;font-family:monospace;font-size:13px"></textarea>
+<button class="btn btn-primary" onclick="doBatchDecrypt()" style="margin-top:10px">Decrypt File</button>
+<div id="batchOutput" style="margin-top:12px"></div>
+</div>`;
+}
+
+function xorEncrypt(text,key){
+const textBytes=new TextEncoder().encode(text);
+const keyBytes=new TextEncoder().encode(key);
+const out=new Uint8Array(textBytes.length);
+for(let i=0;i<textBytes.length;i++)out[i]=textBytes[i]^keyBytes[i%keyBytes.length];
+return btoa(String.fromCharCode(...out));
+}
+function xorDecrypt(b64,key){
+const raw=atob(b64);
+const bytes=new Uint8Array(raw.length);
+for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+const keyBytes=new TextEncoder().encode(key);
+const out=new Uint8Array(bytes.length);
+for(let i=0;i<bytes.length;i++)out[i]=bytes[i]^keyBytes[i%keyBytes.length];
+return new TextDecoder().decode(out);
+}
+
+function doEncrypt(){
+const key=document.getElementById('cryptoKey').value;
+const plain=document.getElementById('cryptoPlain').value;
+if(!plain)return toast('Enter text to encrypt','error');
+try{document.getElementById('cryptoEnc').value=xorEncrypt(plain,key);toast('Encrypted','success')}catch(e){toast('Encryption failed: '+e.message,'error')}
+}
+function doDecrypt(){
+const key=document.getElementById('cryptoKey').value;
+const enc=document.getElementById('cryptoEnc').value.trim();
+if(!enc)return toast('Enter Base64 to decrypt','error');
+try{document.getElementById('cryptoPlain').value=xorDecrypt(enc,key);toast('Decrypted','success')}catch(e){toast('Decryption failed: '+e.message,'error')}
+}
+function doBatchDecrypt(){
+const key=document.getElementById('cryptoKey').value;
+const input=document.getElementById('batchInput').value.trim();
+if(!input)return toast('Paste encrypted data','error');
+try{
+const decrypted=xorDecrypt(input,key);
+const lines=decrypted.split('\n');
+let html='<table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>';
+lines.forEach(line=>{if(!line)return;const i=line.indexOf(':');if(i<0)return;html+=`<tr><td style="font-weight:600;color:var(--accent)">${esc(line.substring(0,i))}</td><td style="font-family:monospace;font-size:12px">${esc(line.substring(i+1))}</td></tr>`});
+html+='</tbody></table>';
+document.getElementById('batchOutput').innerHTML=html;
+toast('File decrypted','success');
+}catch(e){document.getElementById('batchOutput').innerHTML='<div style="color:var(--red);font-size:13px">Decryption failed. The data may be corrupted or the key is wrong.</div>';toast('Decryption failed','error')}
+}
+
+function renderActivityPage(){
+const c=document.getElementById('content');
+db.ref('activityLog').orderByChild('timestamp').limitToLast(100).once('value',snap=>{
+const data=snap.val()||{};
+const entries=Object.values(data).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+c.innerHTML=`
+<h1 class="page-title">Activity Log</h1>
+<div class="card">
+<div class="card-header"><h3>Recent Activity</h3><button class="btn btn-secondary" onclick="renderActivityPage()">Refresh</button></div>
+${entries.length===0?'<div class="empty-state">No activity recorded yet</div>':
+entries.map(e=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(51,51,51,.3)">
+<div style="font-size:12px;color:var(--text-dim);min-width:140px;flex-shrink:0">${fmtTsFull(e.timestamp)}</div>
+<div style="font-size:13px"><strong style="color:var(--accent)">${esc(e.action||'')}</strong><br><span style="color:var(--text-dim)">${esc(e.details||'')}</span></div>
+</div>`).join('')}
+</div>`;
+});
+}
+
+ function renderServersPage(){
+ const c=document.getElementById('content');
+ db.ref('online').once('value',snap=>{
+ const online=snap.val()||{};
+ const servers={};
+ Object.keys(online).forEach(k=>{
+ const o=online[k];
+ if(o&&o.currentCode){
+  if(!servers[o.currentCode]) servers[o.currentCode]=[];
+  servers[o.currentCode].push({id:k,name:o.username||'Unknown',lastOnline:o.lastOnline});
+ }
+ });
+ const codes=Object.keys(servers).sort();
+ c.innerHTML=`
+ <h1 class="page-title">Servers</h1>
+ <div class="card">
+ <div class="card-header"><h3>Active Servers</h3><button class="btn btn-secondary" onclick="renderServersPage()">Refresh</button></div>
+ ${codes.length===0?'<div class="empty-state">No active servers found</div>':
+ '<table><thead><tr><th>Server Code</th><th>Players</th><th>Last Active</th></tr></thead><tbody>'+
+ codes.map(code=>{
+ const players=servers[code];
+ const lastOnline=players.length>0?players[0].lastOnline:0;
+ return `<tr>
+ <td style="font-family:monospace;font-size:14px;font-weight:600">${esc(code)}</td>
+ <td><span class="badge online-badge">${players.length} online</span></td>
+ <td>${fmtTs(lastOnline)}</td>
+ </tr>`;
+ }).join('')+'</tbody></table>'}
+ </div>`;
+ });
+}
+
+function fmtTs(ts){if(!ts)return'--';const d=new Date(typeof ts==='number'?ts*1000:ts);const diff=Date.now()-d.getTime();if(diff<60000)return'Just now';if(diff<3600000)return Math.floor(diff/60000)+'m ago';if(diff<86400000)return Math.floor(diff/3600000)+'h ago';if(diff<604800000)return Math.floor(diff/86400000)+'d ago';return d.toLocaleDateString()}
+function fmtTsFull(ts){if(!ts)return'--';return new Date(typeof ts==='number'?ts*1000:ts).toLocaleString()}
+function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
+function toast(msg,type='info'){const c=document.getElementById('toastContainer');const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;c.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(80px)';t.style.transition='all .25s';setTimeout(()=>t.remove(),250)},3000)}
+function logActivity(type,detail){db.ref('activityLog').push({type:type,detail:detail,timestamp:firebase.database.ServerValue.TIMESTAMP})}
+
+function renderFriendsPage(){
+const c=document.getElementById('content');
+const allFriendIds=Object.keys(allFriends).filter(k=>k.startsWith('L+'));
+let totalFriendPairs=0;
+allFriendIds.forEach(k=>{totalFriendPairs+=Object.keys(allFriends[k]||{}).length});
+const allReqIds=Object.keys(allFriendRequests).filter(k=>k.startsWith('L+'));
+let totalReqs=0;
+allReqIds.forEach(k=>{totalReqs+=Object.keys(allFriendRequests[k]||{}).length});
+c.innerHTML=`
+<h1 class="page-title">Friends</h1>
+<div class="stats-row">
+<div class="stat-card"><div class="stat-icon blue"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div><div class="stat-num">${totalFriendPairs}</div><div class="stat-label">Total Friend Links</div></div>
+<div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div><div class="stat-num">${totalReqs}</div><div class="stat-label">Pending Requests</div></div>
+</div>
+<div class="card">
+<div class="card-header"><h3>Pending Friend Requests</h3></div>
+${totalReqs===0?'<div class="empty-state">No pending friend requests</div>':
+'<table><thead><tr><th>From</th><th>To</th><th>Status</th></tr></thead><tbody>'+
+allReqIds.flatMap(k=>{
+const reqs=allFriendRequests[k]||{};
+return Object.keys(reqs).map(fromId=>{
+const req=reqs[fromId]||{};
+const fromUser=(allUsers[fromId]||{}).username||fromId;
+const toUser=(allUsers[k]||{}).username||k;
+return '<tr><td><span style="color:var(--accent);cursor:pointer" onclick="openDetail(\''+fromId+'\')">'+esc(fromUser)+'</span></td><td><span style="color:var(--accent);cursor:pointer" onclick="openDetail(\''+k+'\')">'+esc(toUser)+'</span></td><td><span class="badge" style="background:rgba(255,171,64,.12);color:var(--orange)">Pending</span></td></tr>';
+});
+}).join('')+'</tbody></table>'}
+</div>
+<div class="card">
+<div class="card-header"><h3>All Friend Relationships</h3></div>
+<input class="search-bar" id="friendsSearch" placeholder="Search by name or ID..." oninput="filterFriendsTable()">
+${totalFriendPairs===0?'<div class="empty-state">No friends yet</div>':
+'<table><thead><tr><th>User A</th><th>User B</th><th>Status</th></tr></thead><tbody>'+
+allFriendIds.flatMap(k=>{
+const friends=allFriends[k]||{};
+return Object.keys(friends).map(bId=>{
+const aUser=(allUsers[k]||{}).username||k;
+const bUser=(allUsers[bId]||{}).username||bId;
+const aOnline=isPlayerOnline(allOnline[k]);
+const bOnline=isPlayerOnline(allOnline[bId]);
+const both=aOnline&&bOnline;
+const statusHtml=both?'<span class="badge online-badge">Both Online</span>':aOnline?'<span class="badge" style="background:rgba(0,212,255,.12);color:var(--accent)">A Online</span>':bOnline?'<span class="badge" style="background:rgba(0,212,255,.12);color:var(--accent)">B Online</span>':'<span class="badge offline-badge">Both Offline</span>';
+return '<tr data-search="'+(aUser+k+bUser+bId).toLowerCase()+'" onclick="openDetail(\''+k+'\')"><td><span style="cursor:pointer" onclick="event.stopPropagation();openDetail(\''+k+'\')">'+esc(aUser)+'</span></td><td><span style="cursor:pointer" onclick="event.stopPropagation();openDetail(\''+bId+'\')">'+esc(bUser)+'</span></td><td>'+statusHtml+'</td></tr>';
+});
+}).join('')+'</tbody></table>'}
+</div>`;
+}
+function filterFriendsTable(){const q=(document.getElementById('friendsSearch')||{}).value||'';document.querySelectorAll('#content table tbody tr[data-search]').forEach(r=>{r.style.display=r.dataset.search.indexOf(q.toLowerCase())>=0?'':'none'})}
+
+function renderDMsPage(){
+const c=document.getElementById('content');
+const dmUserIds=Object.keys(allDMs).filter(k=>k.startsWith('L+'));
+let totalMessages=0;
+const recentMessages=[];
+dmUserIds.forEach(k=>{
+const threads=allDMs[k]||{};
+Object.keys(threads).forEach(peerId=>{
+const msgs=Array.isArray(threads[peerId])?threads[peerId]:[];
+totalMessages+=msgs.length;
+msgs.slice(-3).forEach(m=>{recentMessages.push(Object.assign({},m,{from:k,to:peerId}))});
+});
+});
+recentMessages.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+const recent50=recentMessages.slice(0,50);
+c.innerHTML=`
+<h1 class="page-title">Direct Messages</h1>
+<div class="stats-row">
+<div class="stat-card"><div class="stat-icon blue"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="stat-num">${dmUserIds.length}</div><div class="stat-label">Users with DMs</div></div>
+<div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="stat-num">${totalMessages}</div><div class="stat-label">Total Messages</div></div>
+</div>
+<div class="card">
+<div class="card-header"><h3>All DM Conversations</h3></div>
+${dmUserIds.length===0?'<div class="empty-state">No DM conversations yet</div>':
+'<table><thead><tr><th>User</th><th>Conversation With</th><th>Messages</th><th>Last Message</th></tr></thead><tbody>'+
+dmUserIds.flatMap(k=>{
+const threads=allDMs[k]||{};
+return Object.keys(threads).map(peerId=>{
+const msgs=Array.isArray(threads[peerId])?threads[peerId]:[];
+const count=msgs.length;
+const lastMsg=count>0?msgs[count-1]:null;
+const lastText=lastMsg?(lastMsg.text||'').substring(0,60):'--';
+const fromUser=(allUsers[k]||{}).username||k;
+const toUser=(allUsers[peerId]||{}).username||peerId;
+return '<tr onclick="openDetail(\''+k+'\')"><td><span style="cursor:pointer" onclick="event.stopPropagation();openDetail(\''+k+'\')">'+esc(fromUser)+'</span></td><td><span style="cursor:pointer" onclick="event.stopPropagation();openDetail(\''+peerId+'\')">'+esc(toUser)+'</span></td><td><span class="badge online-badge">'+count+'</span></td><td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(lastText)+'</td></tr>';
+});
+}).join('')+'</tbody></table>'}
+</div>
+<div class="card">
+<div class="card-header"><h3>Recent Messages</h3><button class="btn btn-secondary" onclick="renderDMsPage()">Refresh</button></div>
+${recent50.length===0?'<div class="empty-state">No recent messages</div>':
+recent50.map(m=>{
+const fromUser=(allUsers[m.from]||{}).username||m.from;
+const toUser=(allUsers[m.to]||{}).username||m.to;
+return '<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(51,51,51,.3)"><div style="font-size:12px;color:var(--text-dim);min-width:140px;flex-shrink:0">'+fmtTsFull(m.timestamp)+'</div><div style="font-size:13px"><strong style="color:var(--accent)">'+esc(fromUser)+'</strong> &rarr; <strong style="color:var(--accent)">'+esc(toUser)+'</strong><br><span style="color:var(--text-dim)">'+esc(m.text||'')+'</span></div></div>';
+}).join('')}
+</div>`;
+}
+</script>
+</body>
+</html>
